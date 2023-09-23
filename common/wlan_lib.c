@@ -149,7 +149,7 @@ struct dataRateMappingTable_t {
 	{65, 130, 195, 260, 390, 520, 585, 650, 780, 867}
 	},
 	{ /* SGI */
-	{72, 144, 217, 289, 433, 578, 650, 722, 867, 963}
+	{72, 144, 217, 289, 433, 578, 650, 722, 867, 867}
 	}
 } },
 {
@@ -488,6 +488,13 @@ struct PARAM_CUSTOM_KEY_CFG_STRUCT g_rDefaulteSetting[] = {
 	*   }
 	*/
 	{"AdapScan", "0x0", WLAN_CFG_DEFAULT},
+	{"DropPacketsIPV4Low", "0x200"},
+	{"DropPacketsIPV6Low", "0x2"},
+#ifdef TARGET_PRODUCT_ROSEMARY
+	{"EdccaTh5gBw20", "0xFFAB"},
+	{"EdccaTh5gBw40", "0xFFAB"},
+	{"EdccaTh5gBw80", "0xFFAB"},
+#endif
 #if CFG_SUPPORT_IOT_AP_BLACKLIST
 	/*Fill Iot AP blacklist here*/
 #endif
@@ -712,7 +719,7 @@ void wlanAdapterDestroy(IN struct ADAPTER *prAdapter)
 
 	scanLogCacheFlushAll(prAdapter,
 		&(prAdapter->rWifiVar.rScanInfo.rScanLogCache),
-		LOG_SCAN_D2D, SCAN_LOG_MSG_MAX_LEN);
+		LOG_SCAN_D2D);
 
 	kalMemFree(prAdapter, VIR_MEM_TYPE, sizeof(struct ADAPTER));
 }
@@ -7728,6 +7735,9 @@ void wlanInitFeatureOption(IN struct ADAPTER *prAdapter)
 	prWifiVar->uArpMonitorRxPktNum = (uint32_t) wlanCfgGetUint32(
 		prAdapter, "ArpMonitorRxPktNum", 0);
 #endif /* ARP_MONITER_ENABLE */
+
+	prWifiVar->fgSapCheckPmkidInDriver = (uint32_t) wlanCfgGetUint32(
+		prAdapter, "SapCheckPmkidInDriver", FEATURE_ENABLED);
 }
 
 void wlanCfgSetSwCtrl(IN struct ADAPTER *prAdapter)
@@ -10222,15 +10232,8 @@ struct net_device *wlanGetNetDev(IN struct GLUE_INFO *prGlueInfo,
 		if (prBssInfo && IS_BSS_P2P(prBssInfo)) {
 			prGlueP2pInfo =
 				prGlueInfo->prP2PInfo[prBssInfo->u4PrivateData];
-
-			if (prGlueP2pInfo) {
-				if ((prGlueP2pInfo->aprRoleHandler != NULL) &&
-					(prGlueP2pInfo->aprRoleHandler !=
-						prGlueP2pInfo->prDevHandler))
-					return prGlueP2pInfo->aprRoleHandler;
-				else
-					return prGlueP2pInfo->prDevHandler;
-			}
+			if (prGlueP2pInfo)
+				return prGlueP2pInfo->prDevHandler;
 		}
 	}
 
@@ -11986,7 +11989,8 @@ int wlanGetRxRate(IN struct GLUE_INFO *prGlueInfo,
 		 OUT uint32_t *pu4CurRate, OUT uint32_t *pu4MaxRate)
 {
 	struct ADAPTER *prAdapter;
-	uint32_t rxmode = 0, rate = 0, frmode = 0, sgi = 0, nss = 0;
+	uint32_t rxmode = 0, rate = 0, frmode = 0, sgi = 0, nsts = 0;
+	uint32_t groupid = 0, mu = 0;
 	uint32_t u4RxVector0 = 0, u4RxVector1 = 0;
 	uint8_t ucWlanIdx, ucStaIdx;
 	int rv;
@@ -12021,11 +12025,15 @@ int wlanGetRxRate(IN struct GLUE_INFO *prGlueInfo,
 	rxmode = (u4RxVector0 & RX_VT_RX_MODE_MASK) >> RX_VT_RX_MODE_OFFSET;
 	rate = (u4RxVector0 & RX_VT_RX_RATE_MASK) >> RX_VT_RX_RATE_OFFSET;
 	frmode = (u4RxVector0 & RX_VT_FR_MODE_MASK) >> RX_VT_FR_MODE_OFFSET;
-	nss = ((u4RxVector0 & RX_VT_NUM_RX_MASK) >> RX_VT_NUM_RX_OFFSET);
+	nsts = ((u4RxVector1 & RX_VT_NSTS_MASK) >> RX_VT_NSTS_OFFSET);
 	sgi = u4RxVector0 & RX_VT_SHORT_GI;
-
-	/*0 means 1R, 1 means 2R ...*/
-	nss += 1;
+	groupid = (u4RxVector1 & RX_VT_GROUP_ID_MASK) >> RX_VT_GROUP_ID_OFFSET;
+	if (groupid && groupid != 63) {
+		mu = 1;
+	} else {
+		mu = 0;
+		nsts += 1;
+	}
 	sgi = (sgi == 0) ? 0 : 1;
 	if (frmode >= 4) {
 		DBGLOG(SW4, ERROR, "frmode error: %u\n", frmode);
@@ -12033,10 +12041,11 @@ int wlanGetRxRate(IN struct GLUE_INFO *prGlueInfo,
 	}
 
 	DBGLOG(SW4, TRACE,
-	       "rxmode=%u rate=%u bandwidth=%u sgi=%u nss=%u\n",
-	       rxmode, rate, frmode, sgi, nss);
+		   "rxmode=[%u], rate=[%u], bandwidth=[%u], sgi=[%u], nsts=[%u]\n",
+		   rxmode, rate, frmode, sgi, nsts
+	);
 
-	rv = wlanQueryRateByTable(rxmode, rate, frmode, sgi, nss,
+	rv = wlanQueryRateByTable(rxmode, rate, frmode, sgi, nsts,
 				 pu4CurRate, pu4MaxRate);
 	if (rv < 0)
 		goto errhandle;
@@ -12046,8 +12055,8 @@ int wlanGetRxRate(IN struct GLUE_INFO *prGlueInfo,
 errhandle:
 	/* soc3_0 known issue */
 	DBGLOG(SW4, TRACE,
-		"u4RxVector0=[%x], u4RxVector1=[%x], rxmode=[%u], rate=[%u], frmode=[%u], sgi=[%u], nss=[%u]\n",
-		u4RxVector0, u4RxVector1, rxmode, rate, frmode, sgi, nss
+		"u4RxVector0=[%x], u4RxVector1=[%x], rxmode=[%u], rate=[%u], frmode=[%u], sgi=[%u], nsts=[%u]\n",
+		u4RxVector0, u4RxVector1, rxmode, rate, frmode, sgi, nsts
 	);
 	return -1;
 }

@@ -595,6 +595,7 @@ static uint8_t kalGetSwAmsduNum(struct GLUE_INFO *prGlueInfo,
 				struct MSDU_INFO *prMsduInfo)
 {
 	struct ADAPTER *prAdapter;
+	struct sk_buff *prSkb;
 	struct STA_RECORD *prStaRec;
 	uint8_t ucTid, ucStaRecIndex;
 	struct TX_DESC_OPS_T *prTxDescOps;
@@ -604,8 +605,9 @@ static uint8_t kalGetSwAmsduNum(struct GLUE_INFO *prGlueInfo,
 
 	prAdapter = prGlueInfo->prAdapter;
 	prTxDescOps = prAdapter->chip_info->prTxDescOps;
+	prSkb = (struct sk_buff *)prMsduInfo->prPacket;
 
-	ucTid = prMsduInfo->ucUserPriority;
+	ucTid = prTxDescOps->nic_txd_tid_op((void *)prSkb->data, 0, FALSE);
 	ucStaRecIndex = prMsduInfo->ucStaRecIndex;
 	if (ucStaRecIndex >= CFG_STA_REC_NUM || ucTid >= TX_DESC_TID_NUM)
 		return 0;

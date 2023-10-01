@@ -3196,6 +3196,7 @@ wlanoidSetRemoveKey(IN struct ADAPTER *prAdapter,
 
 				secPrivacyFreeForEntry(prAdapter,
 				    prBssInfo->ucBMCWlanIndexS[u4KeyIndex]);
+
 				prBssInfo->ucBMCWlanIndexSUsed[u4KeyIndex]
 					= FALSE;
 				prBssInfo->ucBMCWlanIndexS[u4KeyIndex]

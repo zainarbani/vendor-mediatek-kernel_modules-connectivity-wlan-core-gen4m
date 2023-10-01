@@ -8,6 +8,12 @@ ifeq ($(os),)
 os=linux
 endif
 
+ifeq ($(CONFIG_ARCH_MTK_PROJECT), "rosemary")
+$(warning liuqi WIFI SAR K7B)
+ccflags-y += -DTARGET_PRODUCT_ROSEMARY
+endif
+
+
 ccflags-y += -Wno-unused-value
 ccflags-y += -Wno-unused-result
 ccflags-y += -Wno-format

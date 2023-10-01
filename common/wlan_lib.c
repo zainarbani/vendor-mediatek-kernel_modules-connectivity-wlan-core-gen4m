@@ -149,7 +149,7 @@ struct dataRateMappingTable_t {
 	{65, 130, 195, 260, 390, 520, 585, 650, 780, 867}
 	},
 	{ /* SGI */
-	{72, 144, 217, 289, 433, 578, 650, 722, 867, 963}
+	{72, 144, 217, 289, 433, 578, 650, 722, 867, 867}
 	}
 } },
 {
@@ -488,6 +488,13 @@ struct PARAM_CUSTOM_KEY_CFG_STRUCT g_rDefaulteSetting[] = {
 	*   }
 	*/
 	{"AdapScan", "0x0", WLAN_CFG_DEFAULT},
+	{"DropPacketsIPV4Low", "0x200"},
+	{"DropPacketsIPV6Low", "0x2"},
+#ifdef TARGET_PRODUCT_ROSEMARY
+	{"EdccaTh5gBw20", "0xFFAB"},
+	{"EdccaTh5gBw40", "0xFFAB"},
+	{"EdccaTh5gBw80", "0xFFAB"},
+#endif
 #if CFG_SUPPORT_IOT_AP_BLACKLIST
 	/*Fill Iot AP blacklist here*/
 #endif

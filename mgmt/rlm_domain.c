@@ -124,12 +124,14 @@ char *g_au1TxPwrDefaultSetting[] = {
 	"_G_Scenario;4;2;1;[ALL,,,,,,,,,,,]",
 	"_G_Scenario;5;2;1;[ALL,,,,,,,,,,,]",
 #else
+#ifdef TARGET_PRODUCT_ROSEMARY
 	"_SAR_PwrLevel;1;2;1;[2G4,,,,,,,,,][5G,,,,,,,,,]",
-	"_G_Scenario;1;2;1;[ALL,,,,,,,,,]",
+	"_G_Scenario;1;2;1;[2G4,28,28,24,28,24,,,,][5G,18]",
 	"_G_Scenario;2;2;1;[ALL,,,,,,,,,]",
 	"_G_Scenario;3;2;1;[ALL,,,,,,,,,]",
 	"_G_Scenario;4;2;1;[ALL,,,,,,,,,]",
 	"_G_Scenario;5;2;1;[ALL,,,,,,,,,]",
+#endif
 #endif /* CFG_SUPPORT_DYNA_TX_PWR_CTRL_OFDM_SETTING */
 };
 #endif
@@ -425,14 +427,14 @@ struct DOMAIN_INFO_ENTRY arSupportedRegDomains[] = {
 			{81, BAND_2G4, CHNL_SPAN_5, 1, 13, FALSE}
 			,			/* CH_SET_2G4_1_13 */
 
-			{115, BAND_5G, CHNL_SPAN_20, 36, 4, FALSE}
+			{115, BAND_5G, CHNL_SPAN_20, 36, 4, TRUE}
 			,			/* CH_SET_UNII_LOW_36_48 */
 			{118, BAND_5G, CHNL_SPAN_20, 52, 4, TRUE}
 			,			/* CH_SET_UNII_MID_52_64 */
 			{121, BAND_5G, CHNL_SPAN_20, 100, 11, TRUE}
 			,			/* CH_SET_UNII_WW_100_140 */
-			{125, BAND_NULL, 0, 0, 0, FALSE}
-			,			/* CH_SET_UNII_UPPER_NA */
+			{125, BAND_5G, CHNL_SPAN_20, 149, 5, FALSE}
+			,			/* CH_SET_UNII_UPPER_149_165 */
 			{0, BAND_NULL, 0, 0, 0, FALSE}
 		}
 	}
@@ -623,9 +625,9 @@ struct DOMAIN_INFO_ENTRY arSupportedRegDomains[] = {
 		{
 			{81, BAND_2G4, CHNL_SPAN_5, 1, 13, FALSE}
 			,			/* CH_SET_2G4_1_13 */
-			{115, BAND_NULL, 0, 0, 0, FALSE}
-			,			/* CH_SET_UNII_LOW_NA */
-			{118, BAND_NULL, 0, 0, 0, FALSE}
+			{115, BAND_5G, CHNL_SPAN_20, 36, 4, TRUE}
+			,			/* CH_SET_UNII_LOW_36_48 */
+			{118, BAND_5G, CHNL_SPAN_20, 52, 4, TRUE}
 			,			/* CH_SET_UNII_MID_NA */
 			{121, BAND_NULL, 0, 0, 0, FALSE}
 			,			/* CH_SET_UNII_WW_NA */
